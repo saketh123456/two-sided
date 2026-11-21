@@ -1,0 +1,318 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Market-making simulator</title>
+  <meta name="description" content="How much profit does inventory control cost a market maker, and how much risk does it remove? A Monte Carlo study on synthetic prices and order flow.">
+  <meta name="color-scheme" content="light dark">
+  <meta name="theme-color" content="#0e1a2b">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230e1a2b'/%3E%3Crect x='8' y='9' width='16' height='3.2' rx='1.6' fill='%23eb6834'/%3E%3Crect x='8' y='19.8' width='16' height='3.2' rx='1.6' fill='%233987e5'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,300..700;1,6..72,300..700&family=Schibsted+Grotesk:wght@400..800&display=swap">
+  <link rel="stylesheet" href="css/app.css">
+  <script>
+    // Motion is opt-in: enabled only when JS runs and the reader has not asked for reduced motion.
+    if (!matchMedia('(prefers-reduced-motion: reduce)').matches) document.documentElement.classList.add('motion');
+    try {
+      const t = localStorage.getItem('mmsim-theme');
+      if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t;
+    } catch (_) {}
+  </script>
+  <script type="module" src="js/app.js"></script>
+</head>
+<body>
+  <a class="skip-link" href="#results">Skip to results</a>
+
+  <header class="nav">
+    <div class="nav-inner">
+      <a class="brand" href="#top" aria-label="Market-making simulator, back to top">
+        <svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true">
+          <rect class="bm-bg" width="32" height="32" rx="8"/>
+          <rect class="bm-ask" x="8" y="9" width="16" height="3.2" rx="1.6"/>
+          <rect class="bm-bid" x="8" y="19.8" width="16" height="3.2" rx="1.6"/>
+        </svg>
+        <span>Market-making simulator</span>
+      </a>
+      <nav class="nav-links" aria-label="Sections">
+        <a href="#parameters">Parameters</a>
+        <a href="#results">Results</a>
+        <a href="#method">Method</a>
+      </nav>
+      <div class="nav-actions">
+        <button type="button" class="btn btn-ghost" id="copy-link">Copy link</button>
+        <div class="seg seg-sm" role="radiogroup" aria-label="Colour theme" id="theme-toggle">
+          <button type="button" role="radio" data-theme-choice="system" title="Match system">Auto</button>
+          <button type="button" role="radio" data-theme-choice="light">Light</button>
+          <button type="button" role="radio" data-theme-choice="dark">Dark</button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main id="top">
+    <!-- Hero: the finding, then one live session that shows it -->
+    <section class="hero" aria-labelledby="headline">
+      <div class="wrap">
+        <div class="hero-top">
+          <h1 id="headline">How much profit does controlling inventory cost a market maker?</h1>
+          <div class="hero-side">
+            <p class="hero-sub" id="hero-sub">Three quoting strategies, the same simulated prices and the same order flow. Running 10,000 sessions each…</p>
+            <ol class="figures" id="hero-figures" aria-label="Mean profit per session by strategy"></ol>
+            <div class="hero-actions">
+              <div class="seg seg-hero" role="radiogroup" aria-label="Market scenario" id="presets">
+                <button type="button" role="radio" data-preset="baseline">Calm market</button>
+                <button type="button" role="radio" data-preset="high_vol">Volatile market</button>
+              </div>
+              <a class="link-quiet" href="#parameters">Adjust parameters</a>
+            </div>
+          </div>
+        </div>
+
+        <figure class="tape" id="tape" aria-labelledby="tape-caption">
+          <div class="tape-head">
+            <figcaption id="tape-caption">
+              <span class="tape-title">One session, played back</span>
+              <span class="tape-step">Step <output data-tape-step>0 of 1,000</output></span>
+            </figcaption>
+            <ul class="tape-rows" aria-label="Live profit and inventory">
+              <li class="tape-cols" aria-hidden="true"><span></span><span></span><span>Profit</span><span>Held</span></li>
+              <li class="s-fixed" data-tape-row="fixed"><span class="sw"></span><span class="nm">Fixed spread</span><output data-pnl>0.00</output><output class="inv" data-inv>0</output></li>
+              <li class="s-skew" data-tape-row="skew"><span class="sw"></span><span class="nm">Inventory skew</span><output data-pnl>0.00</output><output class="inv" data-inv>0</output></li>
+              <li class="s-limit" data-tape-row="limit"><span class="sw"></span><span class="nm">Inventory limit</span><output data-pnl>0.00</output><output class="inv" data-inv>0</output></li>
+            </ul>
+          </div>
+          <canvas class="tape-canvas" role="img" aria-label="Animated price path with the inventory-skew quotes around it, and the inventory of all three strategies below."></canvas>
+          <div class="tape-foot">
+            <p>The solid line is the mid price. The orange band is where inventory skew quotes; dots are its fills, solid when it buys at the bid and hollow when it sells at the ask. Below, each strategy's inventory on the same orders.</p>
+            <button type="button" class="btn btn-ghost btn-sm" data-tape-replay>New session</button>
+          </div>
+        </figure>
+      </div>
+    </section>
+
+    <!-- Parameter deck -->
+    <section class="section" id="parameters" aria-labelledby="params-title">
+      <div class="wrap">
+        <div class="section-head" data-reveal>
+          <h2 id="params-title">Parameters</h2>
+          <p class="section-lede" id="preset-note">Presets match the Python analysis.</p>
+        </div>
+
+        <form class="deck" id="controls" novalidate data-reveal style="--d: 80ms">
+          <fieldset class="deck-col">
+            <legend>Market</legend>
+            <div class="field" data-field="sigma">
+              <label for="f-sigma">Price volatility</label>
+              <span class="unit">σ per session</span>
+              <input type="range" id="r-sigma" min="0" max="12" step="0.1" aria-hidden="true" tabindex="-1">
+              <input type="number" id="f-sigma" name="sigma" min="0" max="50" step="0.1" inputmode="decimal">
+              <p class="error" role="alert"></p>
+            </div>
+            <div class="field" data-field="A">
+              <label for="f-A">Order arrival rate</label>
+              <span class="unit">per side, per session, at the mid</span>
+              <input type="range" id="r-A" min="10" max="400" step="5" aria-hidden="true" tabindex="-1">
+              <input type="number" id="f-A" name="A" min="1" max="5000" step="1" inputmode="decimal">
+              <p class="error" role="alert"></p>
+            </div>
+            <div class="field" data-field="k">
+              <label for="f-k">Rate decay</label>
+              <span class="unit">k, per unit of distance</span>
+              <input type="range" id="r-k" min="0.2" max="6" step="0.1" aria-hidden="true" tabindex="-1">
+              <input type="number" id="f-k" name="k" min="0.01" max="50" step="0.1" inputmode="decimal">
+              <p class="error" role="alert"></p>
+            </div>
+            <div class="field field-plain" data-field="nSteps">
+              <label for="f-nSteps">Steps per session</label>
+              <input type="number" id="f-nSteps" name="nSteps" min="10" max="5000" step="10" inputmode="numeric">
+              <p class="error" role="alert"></p>
+            </div>
+            <div class="field field-plain" data-field="priceModel">
+              <label for="f-priceModel">Price moves</label>
+              <select id="f-priceModel" name="priceModel">
+                <option value="gaussian">Normal steps</option>
+                <option value="binary">Up or down</option>
+              </select>
+            </div>
+          </fieldset>
+
+          <fieldset class="deck-col">
+            <legend>Strategies</legend>
+            <div class="field" data-field="halfSpread">
+              <label for="f-halfSpread">Half-spread</label>
+              <span class="unit">shared by all three</span>
+              <input type="range" id="r-halfSpread" min="0.05" max="2" step="0.05" aria-hidden="true" tabindex="-1">
+              <input type="number" id="f-halfSpread" name="halfSpread" min="0.01" max="10" step="0.05" inputmode="decimal">
+              <p class="error" role="alert"></p>
+            </div>
+            <div class="field" data-field="skew">
+              <label for="f-skew"><span class="dot s-skew" aria-hidden="true"></span>Skew per unit held</label>
+              <span class="unit">quote shift, inventory skew</span>
+              <input type="range" id="r-skew" min="0" max="0.3" step="0.005" aria-hidden="true" tabindex="-1">
+              <input type="number" id="f-skew" name="skew" min="0" max="5" step="0.005" inputmode="decimal">
+              <p class="error" role="alert"></p>
+            </div>
+            <div class="field" data-field="maxInventory">
+              <label for="f-maxInventory"><span class="dot s-limit" aria-hidden="true"></span>Inventory limit</label>
+              <span class="unit">units, inventory limit</span>
+              <input type="range" id="r-maxInventory" min="1" max="30" step="1" aria-hidden="true" tabindex="-1">
+              <input type="number" id="f-maxInventory" name="maxInventory" min="1" max="1000" step="1" inputmode="numeric">
+              <p class="error" role="alert"></p>
+            </div>
+          </fieldset>
+
+          <fieldset class="deck-col deck-run">
+            <legend>Simulation</legend>
+            <div class="field field-plain" data-field="nPaths">
+              <label for="f-nPaths">Sessions per strategy</label>
+              <select id="f-nPaths" name="nPaths">
+                <option value="1000">1,000</option>
+                <option value="5000">5,000</option>
+                <option value="10000">10,000</option>
+                <option value="25000">25,000</option>
+              </select>
+            </div>
+            <div class="field field-plain" data-field="seed">
+              <label for="f-seed">Seed</label>
+              <div class="seed-row">
+                <input type="number" id="f-seed" name="seed" min="0" step="1" inputmode="numeric">
+                <button type="button" class="btn btn-icon" id="new-seed" aria-label="Pick a new random seed" title="New seed">
+                  <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M15.5 6.5A6 6 0 1 0 16 11" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="M16 3v4h-4" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </button>
+              </div>
+              <p class="error" role="alert"></p>
+            </div>
+            <div class="run">
+              <button type="submit" class="btn btn-primary" id="run"><span class="run-fill" aria-hidden="true"></span><span class="run-label">Run simulation</span></button>
+              <button type="button" class="btn btn-ghost" id="cancel" hidden>Cancel</button>
+              <div class="visually-hidden" id="progress" role="progressbar" aria-label="Simulation progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"></div>
+              <p class="hint">Same seed, same result. <kbd>Ctrl</kbd> + <kbd>Enter</kbd> runs from anywhere.</p>
+            </div>
+          </fieldset>
+        </form>
+      </div>
+    </section>
+
+    <!-- Results -->
+    <section class="section" id="results" aria-labelledby="results-title" tabindex="-1">
+      <div class="wrap">
+        <div class="section-head" data-reveal>
+          <h2 id="results-title">Results</h2>
+          <p class="section-lede run-meta" id="run-meta" aria-live="polite">Running the default setup…</p>
+        </div>
+
+        <div class="board-wrap" data-reveal style="--d: 80ms" role="region" aria-label="Strategy comparison" tabindex="0">
+          <table class="board" id="board"></table>
+        </div>
+        <div class="board-foot">
+          <p class="theory" id="theory"></p>
+          <div class="board-actions">
+            <button type="button" class="btn btn-ghost" id="dl-csv" disabled>Download CSV</button>
+            <button type="button" class="btn btn-ghost" id="dl-json" disabled>Download JSON</button>
+          </div>
+        </div>
+
+        <div class="charts" data-reveal>
+          <div class="tabs" role="tablist" aria-label="Charts">
+            <button role="tab" id="tab-pnl" aria-controls="view-pnl" aria-selected="true">Profit distribution</button>
+            <button role="tab" id="tab-inv" aria-controls="view-inv" aria-selected="false" tabindex="-1">Inventory over time</button>
+            <button role="tab" id="tab-dd" aria-controls="view-dd" aria-selected="false" tabindex="-1">Drawdown</button>
+          </div>
+          <div role="tabpanel" id="view-pnl" aria-labelledby="tab-pnl">
+            <p class="chart-note">Final mark-to-market profit per session. The solid line is the mean and the dashed line is zero. The outer 0.1% of sessions on each side are gathered into the end bins.</p>
+            <div class="chart" id="chart-pnl"></div>
+          </div>
+          <div role="tabpanel" id="view-inv" aria-labelledby="tab-inv" hidden>
+            <p class="chart-note">Shaded bands hold the middle 50% and 90% of sessions. The coloured line is the median; grey lines are five individual sessions.</p>
+            <div class="chart" id="chart-inv"></div>
+          </div>
+          <div role="tabpanel" id="view-dd" aria-labelledby="tab-dd" hidden>
+            <p class="chart-note">Share of sessions whose worst peak-to-trough fall stayed at or below each amount. Curves further left mean smaller drawdowns.</p>
+            <div class="chart" id="chart-dd"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Method -->
+    <section class="section section-method" id="method" aria-labelledby="method-title">
+      <div class="wrap">
+        <div class="section-head" data-reveal>
+          <h2 id="method-title">Method</h2>
+          <p class="section-lede">The model in three equations. Everything on this page is computed from them.</p>
+        </div>
+
+        <div class="method-grid">
+          <article class="eq" data-reveal style="--d: 90ms">
+            <h3>Orders arrive less often far from the mid</h3>
+            <p class="formula">λ(δ) = A e<sup>−kδ</sup></p>
+            <p>Market orders that would hit a quote at distance δ arrive as a Poisson process. In one step of
+              length dt the quote fills with probability 1 − e<sup>−λ(δ)dt</sup>, one unit at a time.</p>
+          </article>
+          <article class="eq" data-reveal style="--d: 180ms">
+            <h3>Each fill earns the distance from the mid</h3>
+            <p class="formula">E[spread income] = 2 N P(fill) δ</p>
+            <p>Income per side, δ λ(δ), is largest at δ = 1/k = <span id="delta-star" class="num">0.50</span>.
+              The closed-form value is checked against every run above.</p>
+          </article>
+          <article class="eq" data-reveal style="--d: 270ms">
+            <h3>Inventory adds risk, not return</h3>
+            <p class="formula">Var(∫ q dS) = σ² ∫ E[q<sub>t</sub>²] dt</p>
+            <p>With no drift and no adverse selection, holding inventory has zero expected value. It only
+              adds variance, which grows with σ² and with how far inventory wanders.</p>
+          </article>
+        </div>
+
+        <div class="explain-grid">
+        <figure class="ladder-fig" aria-labelledby="ladder-caption" data-reveal>
+          <div class="ladder-head">
+            <figcaption id="ladder-caption">Where each strategy quotes</figcaption>
+            <div class="inv-readout">
+              <label for="ladder-q">Inventory held</label>
+              <output id="ladder-q-out" for="ladder-q">0</output>
+            </div>
+          </div>
+          <div class="chart ladder-chart" id="ladder" role="img" aria-label="Quote ladder"></div>
+          <div class="inv-control">
+            <input type="range" id="ladder-q" min="-15" max="15" step="1" value="0" aria-describedby="ladder-help">
+            <div class="inv-scale" aria-hidden="true"><span>Short 15</span><span>Flat</span><span>Long 15</span></div>
+            <p class="ladder-help" id="ladder-help">Drag to change the inventory. Bar length is the order arrival rate at that distance from the mid.</p>
+          </div>
+        </figure>
+        <figure class="lambda-fig" data-reveal>
+          <figcaption>Arrival rate against distance from the mid, with every live quote marked. Filled dots are bids, rings are asks.</figcaption>
+          <div class="chart" id="lambda" role="img" aria-label="Arrival rate against distance from the mid"></div>
+        </figure>
+        </div>
+
+        <div class="assumptions" data-reveal>
+          <h3>What the model leaves out</h3>
+          <ul>
+            <li><strong>Adverse selection.</strong> Orders here never anticipate price moves. Real ones often do, which makes inventory costlier and flatters the fixed spread.</li>
+            <li><strong>Closing costs.</strong> Leftover inventory is valued at the mid with no cost to unwind it.</li>
+            <li><strong>Market frictions.</strong> No fees, rebates, latency or queue position; fills happen exactly at the quote.</li>
+            <li><strong>Fat tails.</strong> Prices follow a driftless random walk with constant volatility.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="foot">
+    <div class="wrap foot-inner">
+      <p>Everything on this page is simulated. Prices and orders are generated by the model, so these numbers describe the model, not any real market.</p>
+      <p class="foot-meta">Python reference implementation and tests in the project folder. Browser engine verified against it.</p>
+    </div>
+  </footer>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <script>
+    if (location.protocol === 'file:') {
+      document.getElementById('run-meta').textContent =
+        'This page needs a local web server. In the web folder run "python -m http.server 8765", then open http://localhost:8765.';
+    }
+  </script>
+</body>
+</html>

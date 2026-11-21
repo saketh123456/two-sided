@@ -1,0 +1,204 @@
+{
+  "seed": 20261120,
+  "n_paths": 10000,
+  "scenarios": {
+    "baseline": {
+      "market": {
+        "s0": 100.0,
+        "sigma": 2.0,
+        "horizon": 1.0,
+        "n_steps": 1000,
+        "A": 140.0,
+        "k": 2.0,
+        "price_model": "gaussian"
+      },
+      "strategies": [
+        {
+          "half_spread": 0.5,
+          "name": "fixed_spread"
+        },
+        {
+          "half_spread": 0.5,
+          "skew": 0.05,
+          "name": "inventory_skew"
+        },
+        {
+          "half_spread": 0.5,
+          "max_inventory": 5,
+          "name": "inventory_limit"
+        }
+      ],
+      "summary": [
+        {
+          "strategy": "fixed_spread",
+          "n_paths": 10000,
+          "mean_pnl": 50.416689526784616,
+          "std_pnl": 14.46356463633807,
+          "ci95_low": 50.13320886903172,
+          "ci95_high": 50.70017018453751,
+          "p_loss": 0.0025,
+          "pnl_p05": 27.45604186734468,
+          "es05": 18.23304184874338,
+          "sharpe_xs": 3.485772062034997,
+          "sharpe_path_median": 4.36942608211395,
+          "dd_median": 6.469874176083124,
+          "dd_p95": 22.06948153176261,
+          "dd_max": 75.21744056833086,
+          "fills_mean": 100.5576,
+          "final_inv_std": 9.733041181925868,
+          "mean_abs_inv": 5.1399034
+        },
+        {
+          "strategy": "inventory_skew",
+          "n_paths": 10000,
+          "mean_pnl": 49.07148639987701,
+          "std_pnl": 6.376244382144227,
+          "ci95_low": 48.946514306420724,
+          "ci95_high": 49.196458493333296,
+          "p_loss": 0.0,
+          "pnl_p05": 38.756159285657766,
+          "es05": 36.12921686503785,
+          "sharpe_xs": 7.695985827847939,
+          "sharpe_path_median": 7.711701221538563,
+          "dd_median": 2.029955260147176,
+          "dd_p95": 4.185522995560554,
+          "dd_max": 15.088221867135417,
+          "fills_mean": 102.7007,
+          "final_inv_std": 2.237322344036977,
+          "mean_abs_inv": 1.6781409
+        },
+        {
+          "strategy": "inventory_limit",
+          "n_paths": 10000,
+          "mean_pnl": 46.38345417369085,
+          "std_pnl": 7.966465795814587,
+          "ci95_low": 46.22731431325218,
+          "ci95_high": 46.53959403412952,
+          "p_loss": 0.0,
+          "pnl_p05": 32.95669802740072,
+          "es05": 29.223388868311936,
+          "sharpe_xs": 5.822337704388279,
+          "sharpe_path_median": 6.161140447916321,
+          "dd_median": 3.256941532679974,
+          "dd_p95": 6.247381417764707,
+          "dd_max": 16.117468405731927,
+          "fills_mean": 92.6886,
+          "final_inv_std": 3.1819399796670305,
+          "mean_abs_inv": 2.5620494
+        }
+      ],
+      "paired_diff_vs_fixed": {
+        "inventory_skew": {
+          "mean_diff": -1.345203126907599,
+          "ci95_low": -1.5823298245600108,
+          "ci95_high": -1.1080764292551872
+        },
+        "inventory_limit": {
+          "mean_diff": -4.033235353093768,
+          "ci95_low": -4.236435269542726,
+          "ci95_high": -3.8300354366448097
+        }
+      },
+      "runtime_seconds": 1.47384349999993
+    },
+    "high_vol": {
+      "market": {
+        "s0": 100.0,
+        "sigma": 6.0,
+        "horizon": 1.0,
+        "n_steps": 1000,
+        "A": 140.0,
+        "k": 2.0,
+        "price_model": "gaussian"
+      },
+      "strategies": [
+        {
+          "half_spread": 0.5,
+          "name": "fixed_spread"
+        },
+        {
+          "half_spread": 0.5,
+          "skew": 0.05,
+          "name": "inventory_skew"
+        },
+        {
+          "half_spread": 0.5,
+          "max_inventory": 5,
+          "name": "inventory_limit"
+        }
+      ],
+      "summary": [
+        {
+          "strategy": "fixed_spread",
+          "n_paths": 10000,
+          "mean_pnl": 50.69246858035384,
+          "std_pnl": 41.04005958187083,
+          "ci95_low": 49.88809819331539,
+          "ci95_high": 51.496838967392286,
+          "p_loss": 0.0842,
+          "pnl_p05": -13.873534508188218,
+          "es05": -43.14557919869906,
+          "sharpe_xs": 1.2351948095793432,
+          "sharpe_path_median": 1.6917169008336699,
+          "dd_median": 25.79630754044743,
+          "dd_p95": 86.89450353981948,
+          "dd_max": 261.3705946191358,
+          "fills_mean": 100.5576,
+          "final_inv_std": 9.733041181925868,
+          "mean_abs_inv": 5.1399034
+        },
+        {
+          "strategy": "inventory_skew",
+          "n_paths": 10000,
+          "mean_pnl": 49.14695919963103,
+          "std_pnl": 13.766760599961296,
+          "ci95_low": 48.877135650033935,
+          "ci95_high": 49.41678274922812,
+          "p_loss": 0.0003,
+          "pnl_p05": 26.91437984827191,
+          "es05": 20.22897063770668,
+          "sharpe_xs": 3.5699726775062244,
+          "sharpe_path_median": 3.719665369439072,
+          "dd_median": 7.65324540993889,
+          "dd_p95": 16.485688332318954,
+          "dd_max": 50.96466560140743,
+          "fills_mean": 102.7007,
+          "final_inv_std": 2.237322344036977,
+          "mean_abs_inv": 1.6781409
+        },
+        {
+          "strategy": "inventory_limit",
+          "n_paths": 10000,
+          "mean_pnl": 46.46176252107252,
+          "std_pnl": 18.8969994778837,
+          "ci95_low": 46.09138813714728,
+          "ci95_high": 46.83213690499777,
+          "p_loss": 0.0098,
+          "pnl_p05": 15.243034438694053,
+          "es05": 6.02070102178685,
+          "sharpe_xs": 2.4586846486104594,
+          "sharpe_path_median": 2.5736765416703955,
+          "dd_median": 12.436209987328553,
+          "dd_p95": 25.189682001815505,
+          "dd_max": 61.98077015283178,
+          "fills_mean": 92.6886,
+          "final_inv_std": 3.1819399796670305,
+          "mean_abs_inv": 2.5620494
+        }
+      ],
+      "paired_diff_vs_fixed": {
+        "inventory_skew": {
+          "mean_diff": -1.5455093807228102,
+          "ci95_low": -2.2469021670145195,
+          "ci95_high": -0.844116594431101
+        },
+        "inventory_limit": {
+          "mean_diff": -4.230706059281315,
+          "ci95_low": -4.820421645098034,
+          "ci95_high": -3.6409904734645946
+        }
+      },
+      "runtime_seconds": 1.4677989000001617
+    }
+  }
+}
