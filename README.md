@@ -1,6 +1,6 @@
-# market-making-sim
+# Two-Sided
 
-**Live app:** https://saketh123456.github.io/market-making-sim/
+**Live app:** https://saketh123456.github.io/two-sided/
 
 A small, fast market-making simulator with a Monte Carlo comparison of three
 quoting strategies.
