@@ -168,15 +168,22 @@ export function createTape(root) {
     for (let t = 0; t <= n; t++) ctx.lineTo(x(t), py(mid[t]));
     ctx.strokeStyle = colors.ink; ctx.lineWidth = 1.6; ctx.lineJoin = 'round'; ctx.stroke();
 
-    // Fills: filled dot = bought at the bid, ring = sold at the ask. Recent ones pop.
+    // Fills as trade prints: a buy at the bid is a triangle under the band pointing up,
+    // a sell at the ask is a triangle over the band pointing down. New prints ripple out.
+    ctx.fillStyle = fc;
     for (const [t, p, side] of focus.fills) {
       if (t > n) break;
+      const cx = x(t), cy = py(p);
+      const tip = cy + (side > 0 ? 1 : -1);          // tip touches the quote line
+      const base = cy + (side > 0 ? 7 : -7);
+      ctx.beginPath(); ctx.moveTo(cx, tip); ctx.lineTo(cx - 3.6, base); ctx.lineTo(cx + 3.6, base); ctx.closePath();
+      ctx.fill();
       const age = n - t;
-      const r = age < 24 ? 2.6 + (1 - age / 24) * 3.4 : 2.6;
-      ctx.beginPath(); ctx.arc(x(t), py(p), r, 0, Math.PI * 2);
-      ctx.lineWidth = 1.3;
-      if (side > 0) { ctx.fillStyle = fc; ctx.fill(); }
-      else { ctx.fillStyle = colors.bg; ctx.fill(); ctx.strokeStyle = fc; ctx.stroke(); }
+      if (age < 22 && progress < 1) {
+        const k = age / 22;
+        ctx.beginPath(); ctx.arc(cx, cy + (side > 0 ? 4 : -4), 4 + k * 10, 0, Math.PI * 2);
+        ctx.strokeStyle = fc; ctx.lineWidth = 1.2; ctx.globalAlpha = 0.55 * (1 - k); ctx.stroke(); ctx.globalAlpha = 1;
+      }
     }
 
     // Inventory of every strategy, as steps.
